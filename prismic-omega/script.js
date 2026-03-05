@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 locationId: API_CONFIG.locationId
             };
 
-            const contactResponse = await fetch('https://cors-anywhere.herokuapp.com/https://services.leadconnectorhq.com/contacts/upsert', {
+            const contactResponse = await fetch('https://services.leadconnectorhq.com/contacts/upsert', {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify(contactPayload)
@@ -247,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 startTime: isoStartTime
             };
 
-            const appointmentResponse = await fetch('https://cors-anywhere.herokuapp.com/https://services.leadconnectorhq.com/calendars/events/appointments', {
+            const appointmentResponse = await fetch('https://services.leadconnectorhq.com/calendars/events/appointments', {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify(appointmentPayload)
