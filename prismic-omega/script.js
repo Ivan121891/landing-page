@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
         afternoonTimes.forEach(t => createSlot(t, afternoonSlotsContainer));
     };
 
-    // --- 3. Form Handling with GHL API Integration ---
+    // --- 3. Form Handling with Serverless API Integration ---
     bookingForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -182,37 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const email = document.getElementById('email').value;
             const phone = document.getElementById('phone').value;
 
-            const headers = {
-                'Authorization': `Bearer ${API_CONFIG.apiKey}`,
-                'Version': '2021-07-28',
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            };
-
-            // 2. Create or Update Contact in GHL
-            const contactPayload = {
-                name: name,
-                email: email,
-                phone: phone,
-                locationId: API_CONFIG.locationId
-            };
-
-            const contactResponse = await fetch('https://services.leadconnectorhq.com/contacts/upsert', {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify(contactPayload)
-            });
-
-            if (!contactResponse.ok) {
-                const errorData = await contactResponse.json().catch(() => ({}));
-                console.error('Contact Creation Error:', errorData);
-                throw new Error(errorData.message || 'Failed to create contact in GoHighLevel.');
-            }
-
-            const contactData = await contactResponse.json();
-            const contactId = contactData.contact.id;
-
-            // 3. Prepare Appointment Start Time (ISO 8601)
+            // 2. Prepare Appointment Start Time (ISO 8601 with Offset)
             const [timeStr, ampm] = state.selectedTime.split(' ');
             let [hours, minutes] = timeStr.split(':');
             hours = parseInt(hours);
@@ -222,8 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const appointmentDate = new Date(state.selectedDate);
             appointmentDate.setHours(hours, parseInt(minutes), 0, 0);
 
-            // Note: GHL V2 API expects the timezone offset to precisely match the slots returned by the calendar.
-            // toISOString() converts to UTC (Z). We will construct it manually with the local offset (-07:00).
+            // Construct ISO string with local timezone offset (e.g., -07:00)
             const pad = (num) => String(num).padStart(2, '0');
             const offset = -appointmentDate.getTimezoneOffset();
             const sign = offset >= 0 ? '+' : '-';
@@ -239,24 +208,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 pad(appointmentDate.getSeconds()) +
                 sign + offsetHours + ':' + offsetMinutes;
 
-            // 4. Create Appointment in GHL
-            const appointmentPayload = {
-                calendarId: API_CONFIG.calendarId,
+            // 3. Send Request to our Vercel Serverless Function
+            const payload = {
+                name: name,
+                email: email,
+                phone: phone,
                 locationId: API_CONFIG.locationId,
-                contactId: contactId,
+                calendarId: API_CONFIG.calendarId,
                 startTime: isoStartTime
             };
 
-            const appointmentResponse = await fetch('https://services.leadconnectorhq.com/calendars/events/appointments', {
+            const response = await fetch('/api/book', {
                 method: 'POST',
-                headers: headers,
-                body: JSON.stringify(appointmentPayload)
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
             });
 
-            if (!appointmentResponse.ok) {
-                const errorData = await appointmentResponse.json().catch(() => ({}));
-                console.error('Appointment Creation Error:', errorData);
-                throw new Error(errorData.message || 'Failed to create appointment in GoHighLevel.');
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Booking Error:', errorData);
+                throw new Error(errorData.message || 'Failed to schedule appointment.');
             }
 
             // Success!
