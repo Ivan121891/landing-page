@@ -192,12 +192,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const appointmentDate = new Date(state.selectedDate);
             appointmentDate.setHours(hours, parseInt(minutes), 0, 0);
 
-            // Construct ISO string with local timezone offset (e.g., -07:00)
+            // Construct ISO string with the CALENDAR's timezone offset (e.g., -07:00)
+            // GHL requires the exact offset of the calendar, NOT the user's browser offset.
             const pad = (num) => String(num).padStart(2, '0');
-            const offset = -appointmentDate.getTimezoneOffset();
-            const sign = offset >= 0 ? '+' : '-';
-            const offsetHours = pad(Math.floor(Math.abs(offset) / 60));
-            const offsetMinutes = pad(Math.abs(offset) % 60);
+            const calendarTimezoneOffset = '-07:00';
 
             const isoStartTime =
                 appointmentDate.getFullYear() + '-' +
@@ -206,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 pad(appointmentDate.getHours()) + ':' +
                 pad(appointmentDate.getMinutes()) + ':' +
                 pad(appointmentDate.getSeconds()) +
-                sign + offsetHours + ':' + offsetMinutes;
+                calendarTimezoneOffset;
 
             // 3. Send Request to our Vercel Serverless Function
             const payload = {
